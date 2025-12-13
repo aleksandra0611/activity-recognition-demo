@@ -1,20 +1,85 @@
 package com.example.activityrecognition
 
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import android.Manifest
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.widget.Button
+import android.widget.TextView
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.ActivityRecognition
+import com.google.android.gms.location.ActivityRecognitionClient
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var client: ActivityRecognitionClient
+    private lateinit var pendingIntent: PendingIntent
+
+    private val activityUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val activity = intent.getStringExtra("activity")
+            val confidence = intent.getIntExtra("confidence", 0)
+
+            findViewById<TextView>(R.id.tvActivity).text =
+                "Aktivnost: $activity"
+            findViewById<TextView>(R.id.tvConfidence).text =
+                "Zanesljivost: $confidence %"
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        client = ActivityRecognition.getClient(this)
+
+        val intent = Intent(this, ActivityRecognitionReceiver::class.java)
+
+        pendingIntent = PendingIntent.getBroadcast(
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        registerReceiver(activityUpdateReceiver, IntentFilter("ACTIVITY_UPDATE"), Context.RECEIVER_NOT_EXPORTED)
+
+        findViewById<Button>(R.id.btnStart).setOnClickListener {
+            requestPermissionAndStart()
         }
+
+        findViewById<Button>(R.id.btnStop).setOnClickListener {
+            client.removeActivityUpdates(pendingIntent)
+        }
+    }
+
+    private fun requestPermissionAndStart() {
+        // Check Permissions
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // If not granted, ask for it
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+                100
+            )
+            return
+        }
+
+        // Send Request with Success/Failure Listeners
+        client.requestActivityUpdates(5000, pendingIntent)
+            .addOnSuccessListener {
+                // This runs if the system ACCEPTED your request
+                android.widget.Toast.makeText(this, "Success! Updates started. Move your phone!", android.widget.Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                // This runs if the system REJECTED your request (e.g. Permission denied)
+                android.widget.Toast.makeText(this, "Error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
     }
 }
