@@ -12,23 +12,41 @@ class ActivityRecognitionReceiver : BroadcastReceiver() {
         if (!ActivityRecognitionResult.hasResult(intent)) return
 
         val result = ActivityRecognitionResult.extractResult(intent) ?: return
-        val activity = result.mostProbableActivity
 
-        val activityName = when (activity.type) {
-            DetectedActivity.WALKING -> "Hoja"
-            DetectedActivity.RUNNING -> "Tek"
-            DetectedActivity.IN_VEHICLE -> "Vozilo"
-            DetectedActivity.ON_BICYCLE -> "Kolo"
-            DetectedActivity.STILL -> "Miruje"
-            else -> "Neznano"
+        val topActivity = result.mostProbableActivity
+
+        var activityName = getTypeAsString(topActivity.type)
+
+        if (topActivity.type == DetectedActivity.ON_FOOT) {
+            val walking = result.probableActivities.find { it.type == DetectedActivity.WALKING }
+            val running = result.probableActivities.find { it.type == DetectedActivity.RUNNING }
+
+            if (walking != null && walking.confidence > 40) {
+                activityName = "Na nogah (Hoja)"
+            } else if (running != null && running.confidence > 40) {
+                activityName = "Na nogah (Tek)"
+            }
         }
 
         val broadcast = Intent("ACTIVITY_UPDATE")
         broadcast.putExtra("activity", activityName)
-        broadcast.putExtra("confidence", activity.confidence)
-
+        broadcast.putExtra("confidence", topActivity.confidence)
         broadcast.setPackage(context.packageName)
 
         context.sendBroadcast(broadcast)
+    }
+
+    private fun getTypeAsString(type: Int): String {
+        return when (type) {
+            DetectedActivity.WALKING -> "Hoja"
+            DetectedActivity.RUNNING -> "Tek"
+            DetectedActivity.ON_FOOT -> "Na nogah"
+            DetectedActivity.IN_VEHICLE -> "Vozilo"
+            DetectedActivity.ON_BICYCLE -> "Kolo"
+            DetectedActivity.STILL -> "Miruje"
+            DetectedActivity.TILTING -> "Nagibanje"
+            DetectedActivity.UNKNOWN -> "Neznano"
+            else -> "Neznano"
+        }
     }
 }

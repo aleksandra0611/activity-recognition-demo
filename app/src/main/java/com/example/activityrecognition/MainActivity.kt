@@ -51,18 +51,30 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnStop).setOnClickListener {
-            client.removeActivityUpdates(pendingIntent)
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACTIVITY_RECOGNITION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                client.removeActivityUpdates(pendingIntent)
+                    .addOnSuccessListener {
+                        android.widget.Toast.makeText(this, "Stopped successfully", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener {
+                        android.widget.Toast.makeText(this, "Failed to stop", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+            } else {
+                android.widget.Toast.makeText(this, "Permission missing, cannot stop manually", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun requestPermissionAndStart() {
-        // Check Permissions
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACTIVITY_RECOGNITION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // If not granted, ask for it
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
@@ -71,14 +83,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Send Request with Success/Failure Listeners
         client.requestActivityUpdates(5000, pendingIntent)
             .addOnSuccessListener {
-                // This runs if the system ACCEPTED your request
                 android.widget.Toast.makeText(this, "Success! Updates started. Move your phone!", android.widget.Toast.LENGTH_LONG).show()
             }
             .addOnFailureListener { e ->
-                // This runs if the system REJECTED your request (e.g. Permission denied)
                 android.widget.Toast.makeText(this, "Error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
             }
     }
