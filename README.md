@@ -33,7 +33,7 @@ Slabosti
 Licenca
 -------
 
-Projekt je na voljo pod licenco **MIT**. To dovoljuje prosto uporabo, spreminjanje in distribucijo kode, vključno s komercialno rabo, pod pogojem, da se ohrani obvestilo o avtorskih pravicah.
+Projekt je na voljo pod licenco **Apache 2.0**. To dovoljuje prosto uporabo, spreminjanje in distribucijo kode, vključno s komercialno rabo, pod pogojem, da se ohrani obvestilo o avtorskih pravicah in licenci.
 
 Število uporabnikov
 -------------------
